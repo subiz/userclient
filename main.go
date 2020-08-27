@@ -29,6 +29,7 @@ var (
 )
 
 func Init(userservice string, seeds []string) {
+	readyLock = &sync.Mutex{}
 	go func() {
 		readyLock.Lock()
 
@@ -43,7 +44,7 @@ func Init(userservice string, seeds []string) {
 		cluster.Timeout = 10 * time.Second
 		cluster.Keyspace = "users2users"
 		cqlsession, err = cluster.CreateSession()
-		if err == nil {
+		if err != nil {
 			panic(err)
 		}
 
