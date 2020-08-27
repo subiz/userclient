@@ -23,8 +23,9 @@ var (
 	ready     bool
 
 	cqlsession *gocql.Session
-	cache *ristretto.Cache
-	userc header.UserMgrClient
+	cache      *ristretto.Cache
+	userc      header.UserMgrClient
+	eventc     header.EventMgrClient
 )
 
 func Init(userservice string, seeds []string) {
@@ -36,6 +37,7 @@ func Init(userservice string, seeds []string) {
 			panic(err)
 		}
 		userc = header.NewUserMgrClient(conn)
+		eventc = header.NewEventMgrClient(conn)
 
 		cluster := gocql.NewCluster(seeds...)
 		cluster.Timeout = 10 * time.Second
@@ -107,5 +109,14 @@ func GetUser(accid, userid string) (*pb.User, error) {
 
 func SetUser(ctx *cpb.Context, u *pb.User) error {
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
+	return err
+}
+
+func CreateEvent(ctx *cpb.Context, accid, userid string, ev *pb.Event) error {
+	_, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &pb.UserEvent{
+		AccountId: accid,
+		UserId:    userid,
+		Event:     ev,
+	})
 	return err
 }
