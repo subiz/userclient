@@ -48,15 +48,14 @@ func Init(userservice string, seeds []string) {
 			panic(err)
 		}
 
-		cache, err := ristretto.NewCache(&ristretto.Config{
-			NumCounters: 1e3, // number of keys to track frequency of (1k).
-			MaxCost:     1e7, // maximum cost of cache (10MB).
+		cache, err = ristretto.NewCache(&ristretto.Config{
+			NumCounters: 1e4, // number of keys to track frequency of (10k).
+			MaxCost:     1e8, // maximum cost of cache (100MB).
 			BufferItems: 64,  // number of keys per Get buffer.
 		})
 		if err != nil {
 			panic(err)
 		}
-		cache = cache
 		ready = true
 		readyLock.Unlock()
 	}()
