@@ -12,7 +12,6 @@ import (
 	"github.com/subiz/goutils/clock"
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
-	pb "github.com/subiz/header/user"
 	"github.com/subiz/idgen"
 	"github.com/subiz/sgrpc"
 	"google.golang.org/grpc"
@@ -69,14 +68,14 @@ func waitUntilReady() {
 	readyLock.Unlock()
 }
 
-func GetUser(accid, userid string) (*pb.User, error) {
+func GetUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
 	// read in cache
 	if value, found := cache.Get(accid + userid); found {
 		if value == nil {
-			return &pb.User{AccountId: accid, Id: userid}, nil
+			return &header.User{AccountId: accid, Id: userid}, nil
 		}
-		return value.(*pb.User), nil
+		return value.(*header.User), nil
 	}
 
 	user, err := userc.ReadUser(context.Background(), &cpb.Id{AccountId: accid, Id: userid})
@@ -85,7 +84,7 @@ func GetUser(accid, userid string) (*pb.User, error) {
 		return user, nil
 	}
 
-	u := &pb.User{AccountId: accid, Id: userid}
+	u := &header.User{AccountId: accid, Id: userid}
 	ub := make([]byte, 0)
 	created, _ := idgen.GetCreated(userid, idgen.USER_PREFIX)
 	hour := clock.UnixHour(created)
@@ -107,13 +106,13 @@ func GetUser(accid, userid string) (*pb.User, error) {
 	return u, nil
 }
 
-func SetUser(ctx *cpb.Context, u *pb.User) error {
+func SetUser(ctx *cpb.Context, u *header.User) error {
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
 	return err
 }
 
-func CreateEvent(ctx *cpb.Context, accid, userid string, ev *pb.Event) error {
-	_, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &pb.UserEvent{
+func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) error {
+	_, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &header.UserEvent{
 		AccountId: accid,
 		UserId:    userid,
 		Event:     ev,
