@@ -78,7 +78,7 @@ func GetUser(accid, userid string) (*header.User, error) {
 		return value.(*header.User), nil
 	}
 
-	user, err := userc.ReadUser(context.Background(), &cpb.Id{AccountId: accid, Id: userid})
+	user, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
 	if err == nil {
 		cache.SetWithTTL(accid+userid, user, 1000, 30*time.Second)
 		return user, nil
