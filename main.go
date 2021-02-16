@@ -27,7 +27,7 @@ var (
 	eventc     header.EventMgrClient
 )
 
-func Init(userservice string, seeds []string) {
+func Init(userservice string) {
 	readyLock = &sync.Mutex{}
 	go func() {
 		readyLock.Lock()
@@ -39,9 +39,9 @@ func Init(userservice string, seeds []string) {
 		userc = header.NewUserMgrClient(conn)
 		eventc = header.NewEventMgrClient(conn)
 
-		cluster := gocql.NewCluster(seeds...)
+		cluster := gocql.NewCluster("db-0")
 		cluster.Timeout = 10 * time.Second
-		cluster.Keyspace = "users2users"
+		cluster.Keyspace = "user"
 		cqlsession, err = cluster.CreateSession()
 		if err != nil {
 			panic(err)
