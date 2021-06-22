@@ -257,3 +257,27 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) error
 	})
 	return err
 }
+
+func ListMarkUserIds(unixHour int64, accid string, f func(string, string) bool) error {
+	waitUntilReady()
+	if accid != "" {
+		iter := cqlsession.Query(`SELECT id FROM user.upsert_mark WHERE unix_hour=? AND objname=? AND account_id=?`, unixHour, "users", accid).Iter()
+		var id string
+		for iter.Scan(&id) {
+			if !f(accid, id) {
+				break
+			}
+		}
+		return iter.Close()
+	}
+
+	// all accounts
+	iter := cqlsession.Query(`SELECT account_id, id FROM user.upsert_mark WHERE unix_hour=? AND objname=?`, unixHour, "users").Iter()
+	var accountId, id string
+	for iter.Scan(&accountId, &id) {
+		if !f(accountId, id) {
+			break
+		}
+	}
+	return iter.Close()
+}
