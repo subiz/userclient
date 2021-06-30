@@ -9,7 +9,6 @@ import (
 	"github.com/dgraph-io/ristretto"
 	"github.com/gocql/gocql"
 	"github.com/golang/protobuf/proto"
-	"github.com/subiz/errors"
 	"github.com/subiz/goutils/clock"
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
@@ -96,11 +95,11 @@ func GetUser(accid, userid string) (*header.User, error) {
 	}
 
 	if err != nil {
-		return nil, errors.Wrap(err, 500, errors.E_database_error, accid)
+		return nil, header.E500(err, header.E_database_error, accid)
 	}
 
 	if err := proto.Unmarshal(ub, u); err != nil {
-		return nil, errors.Wrap(err, 500, errors.E_proto_marshal_error, accid, userid)
+		return nil, header.E500(err, header.E_invalid_proto, accid, userid)
 	}
 
 	lastSessionId := GetTextAttr(u, "latest_session_id")
@@ -197,7 +196,7 @@ func GetUserSession(accountId, userId, sessionId string) (*header.UserSession, e
 		return nil, nil
 	}
 	if err != nil {
-		return nil, errors.Wrap(err, 500, errors.E_database_error, accountId, userId, sessionId)
+		return nil, header.E500(err, header.E_database_error, accountId, userId, sessionId)
 	}
 
 	var startEvent, latestEvent header.Event
