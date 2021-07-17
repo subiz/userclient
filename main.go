@@ -41,6 +41,7 @@ func Init(userservice string) {
 
 		cluster := gocql.NewCluster("db-0")
 		cluster.Timeout = 30 * time.Second
+		cluster.ConnectTimeout = 30 * time.Second
 		cluster.Keyspace = "user"
 		cqlsession, err = cluster.CreateSession()
 		if err != nil {
