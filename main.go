@@ -8,13 +8,13 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/gocql/gocql"
-	"github.com/golang/protobuf/proto"
 	"github.com/subiz/goutils/clock"
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
 	"github.com/subiz/idgen"
 	"github.com/subiz/sgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
