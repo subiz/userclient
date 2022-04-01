@@ -139,6 +139,7 @@ func SameKey(k1, k2 string) bool {
 
 // Ref git.subiz.net/user/session/sessiondb.go
 func GetUserSession(accountId, userId, sessionId string) (*header.UserSession, error) {
+	waitUntilReady()
 	var ip string
 	var timezone string
 	var platform string
@@ -250,11 +251,13 @@ func GetUserSession(accountId, userId, sessionId string) (*header.UserSession, e
 }
 
 func SetUser(ctx *cpb.Context, u *header.User) error {
+	waitUntilReady()
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
 	return err
 }
 
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) error {
+	waitUntilReady()
 	_, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &header.UserEvent{
 		AccountId: accid,
 		UserId:    userid,
