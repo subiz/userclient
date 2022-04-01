@@ -34,36 +34,30 @@ func init() {
 
 func initialize() {
 	userservice := "user:12842"
-	go func() {
-		readyLock.Lock()
+	conn, err := grpc.Dial(userservice, grpc.WithTransportCredentials(insecure.NewCredentials()), sgrpc.WithShardRedirect())
+	if err != nil {
+		panic(err)
+	}
+	userc = header.NewUserMgrClient(conn)
+	eventc = header.NewEventMgrClient(conn)
 
-		conn, err := grpc.Dial(userservice, grpc.WithTransportCredentials(insecure.NewCredentials()), sgrpc.WithShardRedirect())
-		if err != nil {
-			panic(err)
-		}
-		userc = header.NewUserMgrClient(conn)
-		eventc = header.NewEventMgrClient(conn)
+	cluster := gocql.NewCluster("db-0")
+	cluster.Timeout = 30 * time.Second
+	cluster.ConnectTimeout = 30 * time.Second
+	cluster.Keyspace = "user"
+	cqlsession, err = cluster.CreateSession()
+	if err != nil {
+		panic(err)
+	}
 
-		cluster := gocql.NewCluster("db-0")
-		cluster.Timeout = 30 * time.Second
-		cluster.ConnectTimeout = 30 * time.Second
-		cluster.Keyspace = "user"
-		cqlsession, err = cluster.CreateSession()
-		if err != nil {
-			panic(err)
-		}
-
-		cache, err = ristretto.NewCache(&ristretto.Config{
-			NumCounters: 1e4, // number of keys to track frequency of (10k).
-			MaxCost:     1e8, // maximum cost of cache (100MB).
-			BufferItems: 64,  // number of keys per Get buffer.
-		})
-		if err != nil {
-			panic(err)
-		}
-		ready = true
-		readyLock.Unlock()
-	}()
+	cache, err = ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e4, // number of keys to track frequency of (10k).
+		MaxCost:     1e8, // maximum cost of cache (100MB).
+		BufferItems: 64,  // number of keys per Get buffer.
+	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func waitUntilReady() {
@@ -76,6 +70,7 @@ func waitUntilReady() {
 		return
 	}
 	initialize()
+	ready = true
 	readyLock.Unlock()
 }
 
