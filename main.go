@@ -14,6 +14,7 @@ import (
 	"github.com/subiz/idgen"
 	"github.com/subiz/sgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -27,12 +28,16 @@ var (
 	eventc     header.EventMgrClient
 )
 
-func Init(userservice string) {
+func init() {
 	readyLock = &sync.Mutex{}
+}
+
+func initialize() {
+	userservice := "user:12842"
 	go func() {
 		readyLock.Lock()
 
-		conn, err := grpc.Dial(userservice, grpc.WithInsecure(), sgrpc.WithShardRedirect())
+		conn, err := grpc.Dial(userservice, grpc.WithTransportCredentials(insecure.NewCredentials()), sgrpc.WithShardRedirect())
 		if err != nil {
 			panic(err)
 		}
@@ -66,6 +71,11 @@ func waitUntilReady() {
 		return
 	}
 	readyLock.Lock()
+	if ready {
+		readyLock.Unlock()
+		return
+	}
+	initialize()
 	readyLock.Unlock()
 }
 
