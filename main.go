@@ -256,6 +256,24 @@ func SetUser(ctx *cpb.Context, u *header.User) error {
 	return err
 }
 
+func GetUserByContactProfile(accid string, profile *cpb.ContactProfile) (*header.User, error) {
+	waitUntilReady()
+	ctx := &cpb.Context{
+		Credential: &cpb.Credential{AccountId: profile.GetAccountId(), Type: cpb.Type_subiz},
+	}
+	return userc.GetUserByContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
+}
+
+func SetContactProfile(profile *cpb.ContactProfile, fields []string) error {
+	waitUntilReady()
+	ctx := &cpb.Context{
+		Fields:     fields,
+		Credential: &cpb.Credential{AccountId: profile.GetAccountId(), Type: cpb.Type_subiz},
+	}
+	_, err := userc.UpsertContactProfiles(sgrpc.ToGrpcCtx(ctx), profile)
+	return err
+}
+
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) error {
 	waitUntilReady()
 	_, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &header.UserEvent{
