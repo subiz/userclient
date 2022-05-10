@@ -256,21 +256,24 @@ func SetUser(ctx *cpb.Context, u *header.User) error {
 	return err
 }
 
-func GetUserByContactProfile(accid string, profile *cpb.ContactProfile) (*header.User, error) {
+func GetOrCreateUserByContactProfile(accid string, profile *cpb.ContactProfile) (*header.User, error) {
 	waitUntilReady()
-	ctx := &cpb.Context{
-		Credential: &cpb.Credential{AccountId: profile.GetAccountId(), Type: cpb.Type_subiz},
+	if profile.AccountId != accid {
+		profile = proto.Clone(profile).(*cpb.ContactProfile)
+		profile.AccountId = accid
 	}
-	return userc.GetUserByContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
+	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
+	return userc.GetOrCreateUserByContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
 }
 
-func SetContactProfile(profile *cpb.ContactProfile, fields []string) error {
+func SetContactProfile(accid string, profile *cpb.ContactProfile, fields []string) error {
 	waitUntilReady()
-	ctx := &cpb.Context{
-		Fields:     fields,
-		Credential: &cpb.Credential{AccountId: profile.GetAccountId(), Type: cpb.Type_subiz},
+	if profile.AccountId != accid {
+		profile = proto.Clone(profile).(*cpb.ContactProfile)
+		profile.AccountId = accid
 	}
-	_, err := userc.UpsertContactProfiles(sgrpc.ToGrpcCtx(ctx), profile)
+	ctx := &cpb.Context{Fields: fields, Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
+	_, err := userc.UpsertContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
 	return err
 }
 
