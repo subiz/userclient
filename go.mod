@@ -6,7 +6,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/gocql/gocql v1.1.0
 	github.com/subiz/goutils v0.1.15
-	github.com/subiz/header v1.8.10
+	github.com/subiz/header v1.8.11
 	github.com/subiz/idgen v0.1.22
 	github.com/subiz/sgrpc v1.0.14
 	google.golang.org/grpc v1.46.0
