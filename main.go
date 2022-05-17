@@ -253,7 +253,10 @@ func GetUserSession(accountId, userId, sessionId string) (*header.UserSession, e
 func SetUser(ctx *cpb.Context, u *header.User) error {
 	waitUntilReady()
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
-	return err
+	if err != nil {
+		return header.E500(err, header.E_subiz_call_failed, u.GetAccountId(), u.GetId())
+	}
+	return nil
 }
 
 func GetOrCreateUserByContactProfile(accid string, profile *header.ContactProfile) (*header.User, error) {
@@ -263,28 +266,38 @@ func GetOrCreateUserByContactProfile(accid string, profile *header.ContactProfil
 		profile.AccountId = accid
 	}
 	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
-	return userc.GetOrCreateUserByContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
+	user, err := userc.GetOrCreateUserByContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
+	if err != nil {
+		return nil, header.E500(err, header.E_subiz_call_failed, accid)
+	}
+	return user, nil
 }
 
-func SetContactProfile(accid string, profile *header.ContactProfile, fields []string) error {
+func SetContactProfile(accid string, profile *header.ContactProfile, fields []string) (*header.ContactProfile, error) {
 	waitUntilReady()
 	if profile.AccountId != accid {
 		profile = proto.Clone(profile).(*header.ContactProfile)
 		profile.AccountId = accid
 	}
 	ctx := &cpb.Context{Fields: fields, Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
-	_, err := userc.UpsertContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
-	return err
+	cp, err := userc.UpsertContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
+	if err != nil {
+		return nil, header.E500(err, header.E_subiz_call_failed, accid)
+	}
+	return cp, nil
 }
 
-func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) error {
+func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*header.Event, error) {
 	waitUntilReady()
-	_, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &header.UserEvent{
+	ev, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &header.UserEvent{
 		AccountId: accid,
 		UserId:    userid,
 		Event:     ev,
 	})
-	return err
+	if err != nil {
+		return nil, header.E500(err, header.E_subiz_call_failed, accid, userid)
+	}
+	return ev, nil
 }
 
 func ListMarkUserIds(unixHour int64, accid string, f func(string, string) bool) error {
