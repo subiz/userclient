@@ -259,32 +259,19 @@ func SetUser(ctx *cpb.Context, u *header.User) error {
 	return nil
 }
 
-func GetOrCreateUserByContactProfile(accid string, profile *header.ContactProfile) (*header.User, error) {
+func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
 	waitUntilReady()
-	if profile.AccountId != accid {
-		profile = proto.Clone(profile).(*header.ContactProfile)
-		profile.AccountId = accid
-	}
 	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
-	user, err := userc.GetOrCreateUserByContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
+	u, err := userc.ReadOrCreateUserByContactProfile(sgrpc.ToGrpcCtx(ctx), &header.Id{
+		AccountId:     accid,
+		Channel:       channel,
+		ChannelSource: source,
+		ProfileId:     profileid,
+	})
 	if err != nil {
 		return nil, header.E500(err, header.E_subiz_call_failed, accid)
 	}
-	return user, nil
-}
-
-func SetContactProfile(accid string, profile *header.ContactProfile, fields []string) (*header.ContactProfile, error) {
-	waitUntilReady()
-	if profile.AccountId != accid {
-		profile = proto.Clone(profile).(*header.ContactProfile)
-		profile.AccountId = accid
-	}
-	ctx := &cpb.Context{Fields: fields, Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
-	cp, err := userc.UpsertContactProfile(sgrpc.ToGrpcCtx(ctx), profile)
-	if err != nil {
-		return nil, header.E500(err, header.E_subiz_call_failed, accid)
-	}
-	return cp, nil
+	return u, nil
 }
 
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*header.Event, error) {
