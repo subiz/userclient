@@ -2,7 +2,6 @@ package userclient
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
@@ -108,7 +107,7 @@ func GetUser(accid, userid string) (*header.User, error) {
 		return nil, header.E500(err, header.E_invalid_proto, accid, userid)
 	}
 
-	lastSessionId := GetTextAttr(u, "latest_session_id")
+	lastSessionId := header.GetTextAttr(u, "latest_session_id")
 	session, err := GetUserSession(accid, userid, lastSessionId)
 	if err != nil {
 		return nil, err
@@ -117,24 +116,6 @@ func GetUser(accid, userid string) (*header.User, error) {
 
 	cache.SetWithTTL(accid+userid, u, 1000, 30*time.Second)
 	return u, nil
-}
-
-// Ref git.subiz.net/user/com/common.go
-func GetTextAttr(u *header.User, key string) string {
-	key = strings.ToLower(strings.TrimSpace(key))
-	for _, a := range u.GetAttributes() {
-		if !SameKey(key, a.GetKey()) {
-			continue
-		}
-
-		return a.GetText()
-	}
-
-	return ""
-}
-
-func SameKey(k1, k2 string) bool {
-	return strings.TrimSpace(strings.ToLower(k1)) == strings.TrimSpace(strings.ToLower(k2))
 }
 
 // Ref git.subiz.net/user/session/sessiondb.go
@@ -250,11 +231,27 @@ func GetUserSession(accountId, userId, sessionId string) (*header.UserSession, e
 	return out, nil
 }
 
-func SetUser(ctx *cpb.Context, u *header.User) error {
+// primary only, if pass in secondary => redirect to primary
+func UpdateUser(ctx *cpb.Context, u *header.User) error {
 	waitUntilReady()
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
 	if err != nil {
 		return header.E500(err, header.E_subiz_call_failed, u.GetAccountId(), u.GetId())
+	}
+	return nil
+}
+
+// update using current id (dont redirect to primary)
+func UpdateUserPlain(ctx *cpb.Context, accid, id string, attributes []*header.Attribute) error {
+	waitUntilReady()
+	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), &header.User{
+		AccountId:  accid,
+		Id:         id,
+		Attributes: attributes,
+		PrimaryId:  id, // special mark
+	})
+	if err != nil {
+		return header.E500(err, header.E_subiz_call_failed, accid, id)
 	}
 	return nil
 }
@@ -285,28 +282,4 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 		return nil, header.E500(err, header.E_subiz_call_failed, accid, userid)
 	}
 	return ev, nil
-}
-
-func ListMarkUserIds(unixHour int64, accid string, f func(string, string) bool) error {
-	waitUntilReady()
-	if accid != "" {
-		iter := cqlsession.Query(`SELECT id FROM user.upsert_mark WHERE unix_hour=? AND objname=? AND account_id=?`, unixHour, "users", accid).Iter()
-		var id string
-		for iter.Scan(&id) {
-			if !f(accid, id) {
-				break
-			}
-		}
-		return iter.Close()
-	}
-
-	// all accounts
-	iter := cqlsession.Query(`SELECT account_id, id FROM user.upsert_mark WHERE unix_hour=? AND objname=?`, unixHour, "users").Iter()
-	var accountId, id string
-	for iter.Scan(&accountId, &id) {
-		if !f(accountId, id) {
-			break
-		}
-	}
-	return iter.Close()
 }
