@@ -157,7 +157,7 @@ func GetUserSession(accountId, userId, sessionId string) (*header.UserSession, e
 			start_event,
 			latest_event,
 			time_on_site
-		FROM user_session
+		FROM user_session2
 		WHERE account_id=? AND user_id=? AND id=?`,
 		accountId, userId, sessionId,
 	).Scan(
