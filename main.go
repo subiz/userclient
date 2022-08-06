@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/ristretto"
 	"github.com/gocql/gocql"
 	"github.com/subiz/goutils/clock"
 	"github.com/subiz/header"
@@ -22,7 +21,6 @@ var (
 	ready     bool
 
 	cqlsession *gocql.Session
-	cache      *ristretto.Cache
 	userc      header.UserMgrClient
 	eventc     header.EventMgrClient
 )
@@ -48,15 +46,6 @@ func initialize() {
 	if err != nil {
 		panic(err)
 	}
-
-	cache, err = ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e4, // number of keys to track frequency of (10k).
-		MaxCost:     1e8, // maximum cost of cache (100MB).
-		BufferItems: 64,  // number of keys per Get buffer.
-	})
-	if err != nil {
-		panic(err)
-	}
 }
 
 func waitUntilReady() {
@@ -75,17 +64,8 @@ func waitUntilReady() {
 
 func GetUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
-	// read in cache
-	if value, found := cache.Get(accid + userid); found {
-		if value == nil {
-			return &header.User{AccountId: accid, Id: userid}, nil
-		}
-		return value.(*header.User), nil
-	}
-
 	user, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
 	if err == nil {
-		cache.SetWithTTL(accid+userid, user, 1000, 30*time.Second)
 		return user, nil
 	}
 
@@ -95,7 +75,6 @@ func GetUser(accid, userid string) (*header.User, error) {
 	hour := clock.UnixHour(created)
 	err = cqlsession.Query(`SELECT attrs FROM users WHERE account_id=? AND hour=? AND id=?`, accid, hour, userid).Scan(&ub)
 	if err != nil && err.Error() == gocql.ErrNotFound.Error() {
-		cache.SetWithTTL(accid+userid, u, 1000, 30*time.Second)
 		return u, nil
 	}
 
@@ -106,7 +85,6 @@ func GetUser(accid, userid string) (*header.User, error) {
 	if err := proto.Unmarshal(ub, u); err != nil {
 		return nil, header.E500(err, header.E_invalid_proto, accid, userid)
 	}
-	cache.SetWithTTL(accid+userid, u, 1000, 30*time.Second)
 	return u, nil
 }
 
