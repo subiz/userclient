@@ -89,7 +89,16 @@ func GetUser(accid, userid string) (*header.User, error) {
 }
 
 // primary only, if pass in secondary => redirect to primary
-func UpdateUser(ctx *cpb.Context, u *header.User) error {
+func UpdateUser(u *header.User) error {
+	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: u.AccountId, Type: cpb.Type_subiz}}
+	return UpdateUserCtx(ctx, u)
+}
+
+// primary only, if pass in secondary => redirect to primary
+func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
+	if u == nil {
+		return nil
+	}
 	waitUntilReady()
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
 	if err != nil {
@@ -99,7 +108,13 @@ func UpdateUser(ctx *cpb.Context, u *header.User) error {
 }
 
 // update using current id (dont redirect to primary)
-func UpdateUserPlain(ctx *cpb.Context, accid, id string, attributes []*header.Attribute) error {
+func UpdateUserPlain(accid, id string, attributes []*header.Attribute) error {
+	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
+	return UpdateUserPlainCtx(ctx, accid, id, attributes)
+}
+
+// update using current id (dont redirect to primary)
+func UpdateUserPlainCtx(ctx *cpb.Context, accid, id string, attributes []*header.Attribute) error {
 	waitUntilReady()
 	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), &header.User{
 		AccountId:  accid,
