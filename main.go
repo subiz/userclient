@@ -2,7 +2,6 @@ package userclient
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"time"
 
@@ -157,21 +156,27 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 	return ev, nil
 }
 
-func ScanLead(accid, cursor string) ([]*header.User, string, error) {
+func ScanLead(accid string, predicate func(users []*header.User, offset, total int) bool) error {
 	waitUntilReady()
 	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
-	offset, _ := strconv.Atoi(cursor)
-	users, err := userc.ListLeads(ctx, &header.UserView{
-		AccountId: accid,
-		Offset:    int32(offset),
-		Limit:     50,
-	})
-	if err != nil {
-		return nil, "", err
+	offset := 0
+	// max 50 M lead
+	for i := 0; i < 1_000_000; i++ {
+		out, err := userc.ListLeads(ctx, &header.UserView{
+			AccountId: accid,
+			Offset:    int32(offset),
+			Limit:     50,
+		})
+		if err != nil {
+			return err
+		}
+		if len(out.GetUsers()) == 0 {
+			break
+		}
+		offset += len(out.GetUsers())
+		if !predicate(out.GetUsers(), offset, int(out.GetTotal())) {
+			break
+		}
 	}
-	if len(users.GetUsers()) == 0 {
-		return users.GetUsers(), "", nil
-	}
-	offset += len(users.GetUsers())
-	return users.GetUsers(), strconv.Itoa(offset), nil
+	return nil
 }
