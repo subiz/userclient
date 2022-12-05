@@ -22,7 +22,6 @@ var (
 
 	cqlsession *gocql.Session
 	userc      header.UserMgrClient
-	eventc     header.EventMgrClient
 )
 
 func init() {
@@ -36,8 +35,6 @@ func initialize() {
 		panic(err)
 	}
 	userc = header.NewUserMgrClient(conn)
-	eventc = header.NewEventMgrClient(conn)
-
 	cluster := gocql.NewCluster("db-0")
 	cluster.Timeout = 30 * time.Second
 	cluster.ConnectTimeout = 30 * time.Second
@@ -145,11 +142,7 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*header.Event, error) {
 	waitUntilReady()
-	ev, err := eventc.CreateEvent(sgrpc.ToGrpcCtx(ctx), &header.UserEvent{
-		AccountId: accid,
-		UserId:    userid,
-		Event:     ev,
-	})
+	ev, err := userc.CreateUserEvent(sgrpc.ToGrpcCtx(ctx), ev)
 	if err != nil {
 		return nil, header.E500(err, header.E_subiz_call_failed, accid, userid)
 	}
