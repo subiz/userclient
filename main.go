@@ -97,7 +97,7 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 		return nil
 	}
 	waitUntilReady()
-	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), u)
+	_, err := userc.UpdateUser2(sgrpc.ToGrpcCtx(ctx), u)
 	if err != nil {
 		return header.E500(err, header.E_subiz_call_failed, u.GetAccountId(), u.GetId())
 	}
@@ -113,7 +113,7 @@ func UpdateUserPlain(accid, id string, attributes []*header.Attribute) error {
 // update using current id (dont redirect to primary)
 func UpdateUserPlainCtx(ctx *cpb.Context, accid, id string, attributes []*header.Attribute) error {
 	waitUntilReady()
-	_, err := userc.UpdateUser(sgrpc.ToGrpcCtx(ctx), &header.User{
+	_, err := userc.UpdateUser2(sgrpc.ToGrpcCtx(ctx), &header.User{
 		AccountId:  accid,
 		Id:         id,
 		Attributes: attributes,
