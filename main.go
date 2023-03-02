@@ -149,6 +149,27 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 	return ev, nil
 }
 
+func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
+	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	for i := 0; i < 50; i++ { // NPartition
+		ids, err := userc.ListSegmentUserIds(ctx, &header.ListUserRequest{
+			AccountId: accid,
+			SegmentId: segmentid,
+			OrderBy:   segmentid,
+			Partition: int64(i),
+		})
+		if err != nil {
+			return err
+		}
+		for _, id := range ids.Ids {
+			if !f(id) {
+				break
+			}
+		}
+	}
+	return nil
+}
+
 func ScanLead(accid string, predicate func(users []*header.User, offset, total int) bool) error {
 	waitUntilReady()
 	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
