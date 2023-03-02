@@ -150,6 +150,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 }
 
 func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
+	waitUntilReady()
 	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
 	for i := 0; i < 50; i++ { // NPartition
 		ids, err := userc.ListSegmentUserIds(ctx, &header.ListUserRequest{
