@@ -127,8 +127,8 @@ func UpdateUserPlainCtx(ctx *cpb.Context, accid, id string, attributes []*header
 
 func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
 	waitUntilReady()
-	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
-	u, err := userc.ReadOrCreateUserByContactProfile(sgrpc.ToGrpcCtx(ctx), &header.Id{
+	ctx := GenCtx(accid)
+	u, err := userc.ReadOrCreateUserByContactProfile(ctx, &header.Id{
 		AccountId:     accid,
 		Channel:       channel,
 		ChannelSource: source,
@@ -151,7 +151,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 
 func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
 	waitUntilReady()
-	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	ctx := GenCtx(accid)
 	for i := 0; i < 50; i++ { // NPartition
 		ids, err := userc.ListSegmentUserIds(ctx, &header.ListUserRequest{
 			AccountId: accid,
@@ -174,7 +174,7 @@ func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
 func UpsertSegment(segment *header.Segment) error {
 	waitUntilReady()
 	accid := segment.GetAccountId()
-	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	ctx := GenCtx(accid)
 	if _, err := userc.UpdateSegment(ctx, segment); err != nil {
 		return header.E500(err, header.E_subiz_call_failed, accid, "UPSERT SEGMENT")
 	}
@@ -183,7 +183,7 @@ func UpsertSegment(segment *header.Segment) error {
 
 func AddUserToSegment(accid, segmentid string, userid []string) error {
 	waitUntilReady()
-	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	ctx := GenCtx(accid)
 	_, err := userc.AddToSegment(ctx, &header.SegmentUsers{
 		AccountId: accid,
 		SegmentId: segmentid,
@@ -197,7 +197,7 @@ func AddUserToSegment(accid, segmentid string, userid []string) error {
 
 func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
 	waitUntilReady()
-	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	ctx := GenCtx(accid)
 	_, err := userc.RemoveFromSegment(ctx, &header.SegmentUsers{
 		AccountId: accid,
 		SegmentId: segmentid,
@@ -207,4 +207,37 @@ func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
 		return header.E500(err, header.E_subiz_call_failed, accid, "REMOVE FROM SEGMENT")
 	}
 	return nil
+}
+
+func AddUserLabel(accid, userid, label string) error {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	_, err := userc.AddUserLabel(ctx, &header.UserRequest{
+		AccountId: accid,
+		UserId:    userid,
+		ObjectId:  label,
+	})
+	if err != nil {
+		return header.E500(err, header.E_subiz_call_failed, accid, "ADD USER LABEL")
+	}
+	return nil
+}
+
+func RemoveUserLabel(accid, userid, label string) error {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	_, err := userc.RemoveUserLabel(ctx, &header.UserRequest{
+		AccountId: accid,
+		UserId:    userid,
+		ObjectId:  label,
+	})
+	if err != nil {
+		return header.E500(err, header.E_subiz_call_failed, accid, "REMOVE USER LABEL")
+	}
+	return nil
+}
+
+func GenCtx(accid string) context.Context {
+	return sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz, Issuer: "subiz"}})
+
 }
