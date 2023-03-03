@@ -175,7 +175,7 @@ func UpsertSegment(segment *header.Segment) error {
 	waitUntilReady()
 	accid := segment.GetAccountId()
 	ctx := GenCtx(accid)
-	if _, err := userc.UpdateSegment(ctx, segment); err != nil {
+	if _, err := userc.CreateSegment(ctx, segment); err != nil {
 		return header.E500(err, header.E_subiz_call_failed, accid, "UPSERT SEGMENT")
 	}
 	return nil
