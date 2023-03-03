@@ -239,5 +239,17 @@ func RemoveUserLabel(accid, userid, label string) error {
 
 func GenCtx(accid string) context.Context {
 	return sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz, Issuer: "subiz"}})
+}
 
+func AddLeadOwner(accid, userid, agentid string) error {
+	ctx := GenCtx(accid)
+	_, err := userc.AddLeadOwner(ctx, &header.UserRequest{
+		AccountId: accid,
+		UserId:    userid,
+		ObjectId:  agentid,
+	})
+	if err != nil {
+		return header.E500(err, header.E_subiz_call_failed, accid, "CANNOT ADD LEAD OWNER")
+	}
+	return nil
 }
