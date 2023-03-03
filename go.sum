@@ -25,8 +25,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/subiz/goutils v0.1.16 h1:FMly+ZxdA8PDfYtsIev28queRiIqtMvGtJuY0+w0jdg=
 github.com/subiz/goutils v0.1.16/go.mod h1:PExK897ex/PxMW0ucopKoIP0zfl6VJQ4MBpTb6Acubk=
-github.com/subiz/header v1.11.11 h1:PVvTV3OjXHvughLbFA1U9uV2ZP2ES5C2R943Dnx7+CA=
-github.com/subiz/header v1.11.11/go.mod h1:+BMfsP15K2owpsaiT5zCjRnPJS0HHp5L/Llh05dcq+o=
+github.com/subiz/header v1.11.12 h1:qAtCSRD9bpayfW7HDJuTeodMngShIEs1b7v+2O6Nq0E=
+github.com/subiz/header v1.11.12/go.mod h1:+BMfsP15K2owpsaiT5zCjRnPJS0HHp5L/Llh05dcq+o=
 github.com/subiz/idgen v0.1.25 h1:7d0/+NuGgJPlmzgqk3Pbfe/w2AHZfdyat3V/1T48P1k=
 github.com/subiz/idgen v0.1.25/go.mod h1:HnTJGlC/xr9l6Twb/HXy0gwG4TbaUAKNYBFGjviB1+8=
 github.com/subiz/sgrpc v1.0.17 h1:xvM7ghuHWdK0RnmZ5QnwlPIXj4GTiwMDr3vzmZvzJV4=
