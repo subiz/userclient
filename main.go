@@ -171,37 +171,12 @@ func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
 	return nil
 }
 
-func ScanLead(accid string, predicate func(users []*header.User, offset, total int) bool) error {
-	waitUntilReady()
-	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
-	offset := 0
-	// max 50 M lead
-	for i := 0; i < 1_000_000; i++ {
-		out, err := userc.ListLeads(ctx, &header.UserView{
-			AccountId: accid,
-			Offset:    int32(offset),
-			Limit:     50,
-		})
-		if err != nil {
-			return err
-		}
-		if len(out.GetUsers()) == 0 {
-			break
-		}
-		offset += len(out.GetUsers())
-		if !predicate(out.GetUsers(), offset, int(out.GetTotal())) {
-			break
-		}
-	}
-	return nil
-}
-
 func UpsertSegment(segment *header.Segment) error {
 	waitUntilReady()
 	accid := segment.GetAccountId()
 	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
 	if _, err := userc.UpdateSegment(ctx, segment); err != nil {
-		return header.E500(err, header.E_undefined, accid, "UPSERT SEGMENT")
+		return header.E500(err, header.E_subiz_call_failed, accid, "UPSERT SEGMENT")
 	}
 	return nil
 }
@@ -215,12 +190,13 @@ func AddUserToSegment(accid, segmentid string, userid []string) error {
 		UserIds:   userid,
 	})
 	if err != nil {
-		return header.E500(err, header.E_undefined, accid, "ADD TO SEGMENT")
+		return header.E500(err, header.E_subiz_call_failed, accid, "ADD TO SEGMENT")
 	}
 	return nil
 }
 
 func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
+	waitUntilReady()
 	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
 	_, err := userc.RemoveFromSegment(ctx, &header.SegmentUsers{
 		AccountId: accid,
@@ -228,7 +204,7 @@ func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
 		UserIds:   userids,
 	})
 	if err != nil {
-		return header.E500(err, header.E_undefined, accid, "REMOVE FROM SEGMENT")
+		return header.E500(err, header.E_subiz_call_failed, accid, "REMOVE FROM SEGMENT")
 	}
 	return nil
 }
