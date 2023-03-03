@@ -195,3 +195,40 @@ func ScanLead(accid string, predicate func(users []*header.User, offset, total i
 	}
 	return nil
 }
+
+func UpsertSegment(segment *header.Segment) error {
+	waitUntilReady()
+	accid := segment.GetAccountId()
+	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	if _, err := userc.UpdateSegment(ctx, segment); err != nil {
+		return header.E500(err, header.E_undefined, accid, "UPSERT SEGMENT")
+	}
+	return nil
+}
+
+func AddUserToSegment(accid, segmentid string, userid []string) error {
+	waitUntilReady()
+	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	_, err := userc.AddToSegment(ctx, &header.SegmentUsers{
+		AccountId: accid,
+		SegmentId: segmentid,
+		UserIds:   userid,
+	})
+	if err != nil {
+		return header.E500(err, header.E_undefined, accid, "ADD TO SEGMENT")
+	}
+	return nil
+}
+
+func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
+	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	_, err := userc.RemoveFromSegment(ctx, &header.SegmentUsers{
+		AccountId: accid,
+		SegmentId: segmentid,
+		UserIds:   userids,
+	})
+	if err != nil {
+		return header.E500(err, header.E_undefined, accid, "REMOVE FROM SEGMENT")
+	}
+	return nil
+}
