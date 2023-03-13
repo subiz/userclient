@@ -149,6 +149,32 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 	return ev, nil
 }
 
+func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(users []*header.User, total int) bool) error {
+	waitUntilReady()
+	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	// max 50 M lead
+	anchor := ""
+	for i := 0; i < 1_000; i++ {
+		out, err := userc.ListUsers(ctx, &header.ListUserRequest{
+			AccountId: accid,
+			Condition: cond,
+			Anchor:    anchor,
+			Limit:     50,
+		})
+		if err != nil {
+			return err
+		}
+		if out.Anchor == "" || anchor == out.Anchor || len(out.GetUsers()) == 0 {
+			break
+		}
+		anchor = out.Anchor
+		if !predicate(out.GetUsers(), int(out.GetTotal())) {
+			break
+		}
+	}
+	return nil
+}
+
 func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
 	waitUntilReady()
 	ctx := GenCtx(accid)
