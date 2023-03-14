@@ -197,6 +197,25 @@ func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
 	return nil
 }
 
+func ListSegmentUsers(accid string, segments, excludeSegments []string, f func(*header.User) bool) error {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	users, err := userc.ListAllSegmentUsers(ctx, &header.ListUserRequest{
+		AccountId:       accid,
+		Segments:        segments,
+		ExcludeSegments: excludeSegments,
+	})
+	if err != nil {
+		return err
+	}
+	for _, user := range users.GetUsers() {
+		if !f(user) {
+			break
+		}
+	}
+	return nil
+}
+
 func UpsertSegment(segment *header.Segment) error {
 	waitUntilReady()
 	accid := segment.GetAccountId()
