@@ -275,9 +275,11 @@ func ListAllLabels(accid string) ([]*header.Label, error) {
 	return labels.GetLabels(), nil
 }
 
-func AddUserLabel(accid, userid, label string) error {
+func AddUserLabel(ctx context.Context, accid, userid, label string) error {
 	waitUntilReady()
-	ctx := GenCtx(accid)
+	if ctx == nil {
+		ctx = GenCtx(accid)
+	}
 	_, err := userc.AddUserLabel(ctx, &header.UserRequest{
 		AccountId: accid,
 		UserId:    userid,
@@ -289,9 +291,11 @@ func AddUserLabel(accid, userid, label string) error {
 	return nil
 }
 
-func RemoveUserLabel(accid, userid, label string) error {
+func RemoveUserLabel(ctx context.Context, accid, userid, label string) error {
 	waitUntilReady()
-	ctx := GenCtx(accid)
+	if ctx == nil {
+		ctx = GenCtx(accid)
+	}
 	_, err := userc.RemoveUserLabel(ctx, &header.UserRequest{
 		AccountId: accid,
 		UserId:    userid,
