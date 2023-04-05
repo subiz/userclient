@@ -10,6 +10,7 @@ import (
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
 	"github.com/subiz/idgen"
+	"github.com/subiz/log"
 	"github.com/subiz/sgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -76,11 +77,11 @@ func GetUser(accid, userid string) (*header.User, error) {
 	}
 
 	if err != nil {
-		return nil, header.E500(err, header.E_database_error, accid)
+		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
 
 	if err := proto.Unmarshal(ub, u); err != nil {
-		return nil, header.E500(err, header.E_invalid_proto, accid, userid)
+		return nil, log.EData(err, nil, log.M{"account_id": accid, "user_id": userid})
 	}
 	return u, nil
 }
@@ -99,7 +100,7 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 	waitUntilReady()
 	_, err := userc.UpdateUser2(sgrpc.ToGrpcCtx(ctx), u)
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, u.GetAccountId(), u.GetId())
+		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
 	}
 	return nil
 }
@@ -120,7 +121,7 @@ func UpdateUserPlainCtx(ctx *cpb.Context, accid, id string, attributes []*header
 		PrimaryId:  id, // special mark
 	})
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, id)
+		return log.EServer(err, log.M{"account_id": accid, "id": id})
 	}
 	return nil
 }
@@ -135,7 +136,7 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 		ProfileId:     profileid,
 	})
 	if err != nil {
-		return nil, header.E500(err, header.E_subiz_call_failed, accid)
+		return nil, log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
 	}
 	return u, nil
 }
@@ -144,7 +145,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 	waitUntilReady()
 	ev, err := userc.CreateUserEvent(sgrpc.ToGrpcCtx(ctx), ev)
 	if err != nil {
-		return nil, header.E500(err, header.E_subiz_call_failed, accid, userid)
+		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "event": ev})
 	}
 	return ev, nil
 }
@@ -221,7 +222,7 @@ func UpsertSegment(segment *header.Segment) error {
 	accid := segment.GetAccountId()
 	ctx := GenCtx(accid)
 	if _, err := userc.CreateSegment(ctx, segment); err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, "UPSERT SEGMENT")
+		return log.EServer(err, log.M{"segment": segment})
 	}
 	return nil
 }
@@ -235,7 +236,7 @@ func AddUserToSegment(accid, segmentid string, userid []string) error {
 		UserIds:   userid,
 	})
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, "ADD TO SEGMENT")
+		return log.EServer(err, log.M{"account_id": accid, "segment": segmentid, "userid": userid})
 	}
 	return nil
 }
@@ -249,9 +250,29 @@ func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
 		UserIds:   userids,
 	})
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, "REMOVE FROM SEGMENT")
+		return log.EServer(err, log.M{"account_id": accid, "segment": segmentid, "userid": userids})
 	}
 	return nil
+}
+
+func UpsertLabel(label *header.Label) error {
+	waitUntilReady()
+	ctx := GenCtx(label.AccountId)
+	_, err := userc.UpsertLabel(ctx, label)
+	if err != nil {
+		return log.EServer(err, log.M{"label": label})
+	}
+	return nil
+}
+
+func ListAllLabels(accid string) ([]*header.Label, error) {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	labels, err := userc.ListLabels(ctx, &header.Id{AccountId: accid, Id: accid})
+	if err != nil {
+		return nil, log.EServer(err, log.M{"account_id": accid})
+	}
+	return labels.GetLabels(), nil
 }
 
 func AddUserLabel(accid, userid, label string) error {
@@ -263,7 +284,7 @@ func AddUserLabel(accid, userid, label string) error {
 		ObjectId:  label,
 	})
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, "ADD USER LABEL")
+		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "label": label})
 	}
 	return nil
 }
@@ -277,7 +298,7 @@ func RemoveUserLabel(accid, userid, label string) error {
 		ObjectId:  label,
 	})
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, "REMOVE USER LABEL")
+		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "label": label})
 	}
 	return nil
 }
@@ -287,6 +308,7 @@ func GenCtx(accid string) context.Context {
 }
 
 func AddLeadOwner(accid, userid, agentid string) error {
+	waitUntilReady()
 	ctx := GenCtx(accid)
 	_, err := userc.AddLeadOwner(ctx, &header.UserRequest{
 		AccountId: accid,
@@ -294,7 +316,7 @@ func AddLeadOwner(accid, userid, agentid string) error {
 		ObjectId:  agentid,
 	})
 	if err != nil {
-		return header.E500(err, header.E_subiz_call_failed, accid, "CANNOT ADD LEAD OWNER")
+		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "agent_id": agentid})
 	}
 	return nil
 }
