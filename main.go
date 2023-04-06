@@ -143,11 +143,11 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*header.Event, error) {
 	waitUntilReady()
-	ev, err := userc.CreateUserEvent(sgrpc.ToGrpcCtx(ctx), ev)
+	out, err := userc.CreateUserEvent(sgrpc.ToGrpcCtx(ctx), ev)
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "event": ev})
 	}
-	return ev, nil
+	return out, nil
 }
 
 func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(users []*header.User, total int) bool) error {
