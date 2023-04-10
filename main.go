@@ -3,47 +3,29 @@ package userclient
 import (
 	"context"
 	"sync"
-	"time"
 
-	"github.com/gocql/gocql"
-	"github.com/subiz/goutils/clock"
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
-	"github.com/subiz/idgen"
 	"github.com/subiz/log"
 	"github.com/subiz/sgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
 	readyLock *sync.Mutex
 	ready     bool
 
-	cqlsession *gocql.Session
-	userc      header.UserMgrClient
+	userc header.UserMgrClient
 )
 
 func init() {
 	readyLock = &sync.Mutex{}
-}
-
-func initialize() {
-	userservice := "user:12842"
-	conn, err := grpc.Dial(userservice, grpc.WithTransportCredentials(insecure.NewCredentials()), sgrpc.WithShardRedirect())
+	conn, err := grpc.Dial("user:12842", grpc.WithTransportCredentials(insecure.NewCredentials()), sgrpc.WithShardRedirect())
 	if err != nil {
 		panic(err)
 	}
 	userc = header.NewUserMgrClient(conn)
-	cluster := gocql.NewCluster("db-0")
-	cluster.Timeout = 30 * time.Second
-	cluster.ConnectTimeout = 30 * time.Second
-	cluster.Keyspace = "user"
-	cqlsession, err = cluster.CreateSession()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func waitUntilReady() {
@@ -55,7 +37,6 @@ func waitUntilReady() {
 		readyLock.Unlock()
 		return
 	}
-	initialize()
 	ready = true
 	readyLock.Unlock()
 }
@@ -63,27 +44,28 @@ func waitUntilReady() {
 func GetUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
 	user, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
-	if err == nil {
-		return user, nil
-	}
-
-	u := &header.User{AccountId: accid, Id: userid}
-	ub := make([]byte, 0)
-	created, _ := idgen.GetCreated(userid, idgen.USER_PREFIX)
-	hour := clock.UnixHour(created)
-	err = cqlsession.Query(`SELECT attrs FROM users WHERE account_id=? AND hour=? AND id=?`, accid, hour, userid).Scan(&ub)
-	if err != nil && err.Error() == gocql.ErrNotFound.Error() {
-		return u, nil
-	}
-
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
 
-	if err := proto.Unmarshal(ub, u); err != nil {
-		return nil, log.EData(err, nil, log.M{"account_id": accid, "user_id": userid})
+	return user, nil
+}
+
+func GetPrimaryUser(accid, userid string) (*header.User, error) {
+	waitUntilReady()
+	user, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
+	if err != nil {
+		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
-	return u, nil
+
+	if user.GetPrimaryId() != "" {
+		primary, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
+		if err != nil {
+			return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "primary_id": user.GetPrimaryId()})
+		}
+		return primary, nil
+	}
+	return user, nil
 }
 
 // primary only, if pass in secondary => redirect to primary
