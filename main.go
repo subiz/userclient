@@ -43,7 +43,8 @@ func waitUntilReady() {
 
 func GetUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
-	user, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
+
+	user, err := userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
@@ -53,13 +54,13 @@ func GetUser(accid, userid string) (*header.User, error) {
 
 func GetPrimaryUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
-	user, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
+	user, err := userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
 
 	if user.GetPrimaryId() != "" {
-		primary, err := userc.ReadUser(context.Background(), &header.Id{AccountId: accid, Id: userid})
+		primary, err := userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
 		if err != nil {
 			return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "primary_id": user.GetPrimaryId()})
 		}
