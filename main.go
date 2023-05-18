@@ -7,9 +7,6 @@ import (
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
 	"github.com/subiz/log"
-	"github.com/subiz/sgrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -21,10 +18,7 @@ var (
 
 func init() {
 	readyLock = &sync.Mutex{}
-	conn, err := grpc.Dial("user:12842", grpc.WithTransportCredentials(insecure.NewCredentials()), sgrpc.WithShardRedirect())
-	if err != nil {
-		panic(err)
-	}
+	conn := header.DialGrpc("user:12842", header.WithShardRedirect())
 	userc = header.NewUserMgrClient(conn)
 }
 
@@ -81,7 +75,7 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 		return nil
 	}
 	waitUntilReady()
-	_, err := userc.UpdateUser2(sgrpc.ToGrpcCtx(ctx), u)
+	_, err := userc.UpdateUser2(header.ToGrpcCtx(ctx), u)
 	if err != nil {
 		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
 	}
@@ -97,7 +91,7 @@ func UpdateUserPlain(accid, id string, attributes []*header.Attribute) error {
 // update using current id (dont redirect to primary)
 func UpdateUserPlainCtx(ctx *cpb.Context, accid, id string, attributes []*header.Attribute) error {
 	waitUntilReady()
-	_, err := userc.UpdateUser2(sgrpc.ToGrpcCtx(ctx), &header.User{
+	_, err := userc.UpdateUser2(header.ToGrpcCtx(ctx), &header.User{
 		AccountId:  accid,
 		Id:         id,
 		Attributes: attributes,
@@ -126,7 +120,7 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*header.Event, error) {
 	waitUntilReady()
-	out, err := userc.CreateUserEvent(sgrpc.ToGrpcCtx(ctx), ev)
+	out, err := userc.CreateUserEvent(header.ToGrpcCtx(ctx), ev)
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "event": ev})
 	}
@@ -135,7 +129,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 
 func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(users []*header.User, total int) bool) error {
 	waitUntilReady()
-	ctx := sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	ctx := header.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
 	// max 50 M lead
 	anchor := ""
 	for i := 0; i < 1_000; i++ {
@@ -291,7 +285,7 @@ func RemoveUserLabel(ctx context.Context, accid, userid, label string) error {
 }
 
 func GenCtx(accid string) context.Context {
-	return sgrpc.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz, Issuer: "subiz"}})
+	return header.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz, Issuer: "subiz"}})
 }
 
 func AddLeadOwner(accid, userid, agentid string) error {
