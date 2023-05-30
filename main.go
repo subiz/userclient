@@ -42,19 +42,19 @@ func GetUser(accid, userid string) (*header.User, error) {
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
-
 	return user, nil
 }
 
 func GetPrimaryUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
-	user, err := userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
+
+	user, err := GetUser(accid, userid)
 	if err != nil {
 		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
 	}
 
 	if user.GetPrimaryId() != "" {
-		primary, err := userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
+		primary, err := GetUser(accid, user.GetPrimaryId())
 		if err != nil {
 			return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "primary_id": user.GetPrimaryId()})
 		}
@@ -147,47 +147,6 @@ func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(user
 		}
 		anchor = out.Anchor
 		if !predicate(out.GetUsers(), int(out.GetTotal())) {
-			break
-		}
-	}
-	return nil
-}
-
-func ListSegmentUserIds(accid, segmentid string, f func(string) bool) error {
-	waitUntilReady()
-	ctx := GenCtx(accid)
-	for i := 0; i < 50; i++ { // NPartition
-		ids, err := userc.ListSegmentUserIds(ctx, &header.ListUserRequest{
-			AccountId: accid,
-			SegmentId: segmentid,
-			OrderBy:   segmentid,
-			Partition: int64(i),
-		})
-		if err != nil {
-			return err
-		}
-		for _, id := range ids.Ids {
-			if !f(id) {
-				break
-			}
-		}
-	}
-	return nil
-}
-
-func ListSegmentUsers(accid string, segments, excludeSegments []string, f func(*header.User) bool) error {
-	waitUntilReady()
-	ctx := GenCtx(accid)
-	users, err := userc.ListAllSegmentUsers(ctx, &header.ListUserRequest{
-		AccountId:       accid,
-		Segments:        segments,
-		ExcludeSegments: excludeSegments,
-	})
-	if err != nil {
-		return err
-	}
-	for _, user := range users.GetUsers() {
-		if !f(user) {
 			break
 		}
 	}
