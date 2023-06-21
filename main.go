@@ -211,16 +211,13 @@ func ListAllLabels(accid string) ([]*header.Label, error) {
 	return labels.GetLabels(), nil
 }
 
-func AddUserLabel(ctx context.Context, accid, userid, label string) error {
+func AddUserLabel(ctx context.Context, req *header.UserRequest) error {
 	waitUntilReady()
 	if ctx == nil {
 		ctx = GenCtx(accid)
 	}
-	_, err := userc.AddUserLabel(ctx, &header.UserRequest{
-		AccountId: accid,
-		UserId:    userid,
-		ObjectId:  label,
-	})
+	accid, userid, label := req.AccountId, req.UserId, req.ObjectId
+	_, err := userc.AddUserLabel(ctx, req)
 	if err != nil {
 		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "label": label})
 	}
