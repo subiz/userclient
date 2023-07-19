@@ -64,12 +64,6 @@ func GetPrimaryUser(accid, userid string) (*header.User, error) {
 }
 
 // primary only, if pass in secondary => redirect to primary
-func UpdateUser(u *header.User) error {
-	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: u.AccountId, Type: cpb.Type_subiz}}
-	return UpdateUserCtx(ctx, u)
-}
-
-// primary only, if pass in secondary => redirect to primary
 func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 	if u == nil {
 		return nil
@@ -78,27 +72,6 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 	_, err := userc.UpdateUser2(header.ToGrpcCtx(ctx), u)
 	if err != nil {
 		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
-	}
-	return nil
-}
-
-// update using current id (dont redirect to primary)
-func UpdateUserPlain(accid, id string, attributes []*header.Attribute) error {
-	ctx := &cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}}
-	return UpdateUserPlainCtx(ctx, accid, id, attributes)
-}
-
-// update using current id (dont redirect to primary)
-func UpdateUserPlainCtx(ctx *cpb.Context, accid, id string, attributes []*header.Attribute) error {
-	waitUntilReady()
-	_, err := userc.UpdateUser2(header.ToGrpcCtx(ctx), &header.User{
-		AccountId:  accid,
-		Id:         id,
-		Attributes: attributes,
-		PrimaryId:  id, // special mark
-	})
-	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "id": id})
 	}
 	return nil
 }
