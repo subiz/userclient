@@ -230,3 +230,18 @@ func AddLeadOwner(accid, userid, agentid string) error {
 	}
 	return nil
 }
+
+func MergeUser(ctx context.Context, accid, userid1, userid2, reason string) error {
+	waitUntilReady()
+	if ctx == nil {
+		ctx = GenCtx(accid)
+	}
+	_, err := userc.MergeUser(ctx, &header.Users{
+		Users:  []*header.User{{Id: userid1}, {Id: userid2}},
+		Anchor: reason,
+	})
+	if err != nil {
+		return log.EServer(err, log.M{"account_id": accid, "user_id1": userid1, "user_id2": userid2})
+	}
+	return nil
+}
