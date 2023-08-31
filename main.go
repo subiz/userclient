@@ -91,6 +91,20 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 	return u, nil
 }
 
+func GetUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
+	waitUntilReady()
+	u, err := userc.ReadUser(GenCtx(accid), &header.Id{
+		AccountId:     accid,
+		Channel:       channel,
+		ChannelSource: source,
+		ProfileId:     profileid,
+	})
+	if err != nil {
+		return nil, log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
+	}
+	return u, nil
+}
+
 func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*header.Event, error) {
 	waitUntilReady()
 	out, err := userc.CreateUserEvent(header.ToGrpcCtx(ctx), ev)
