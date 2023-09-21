@@ -259,3 +259,13 @@ func MergeUser(ctx context.Context, accid, userid1, userid2, reason string) erro
 	}
 	return nil
 }
+
+func CountAllContacts(accid string) (int64, error) {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	users, err := userc.ListUsers(ctx, &header.ListUserRequest{AccountId: accid})
+	if err != nil {
+		return 0, log.EServer(err, log.M{"account_id": accid})
+	}
+	return users.GetTotal(), nil
+}
