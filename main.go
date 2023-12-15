@@ -76,6 +76,18 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 	return nil
 }
 
+func DeleteUserCtx(ctx *cpb.Context, u *header.User) error {
+	if u == nil {
+		return nil
+	}
+	waitUntilReady()
+	_, err := userc.RemoveUser(header.ToGrpcCtx(ctx), &header.Id{AccountId: u.AccountId, Id: u.Id, Channel: u.Channel, ChannelSource: u.ChannelSource, ProfileId: u.ProfileId})
+	if err != nil {
+		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
+	}
+	return nil
+}
+
 func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
 	waitUntilReady()
 	ctx := GenCtx(accid)
@@ -116,6 +128,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 
 func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(users []*header.User, total int) bool) error {
 	waitUntilReady()
+
 	ctx := header.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
 	// max 50 M lead
 	anchor := ""
