@@ -69,8 +69,7 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 		return nil
 	}
 	waitUntilReady()
-	_, err := userc.UpdateUser2(header.ToGrpcCtx(ctx), u)
-	if err != nil {
+	if _, err := userc.UpdateUser(header.ToGrpcCtx(ctx), u); err != nil {
 		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
 	}
 	return nil

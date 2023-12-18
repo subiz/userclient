@@ -3,7 +3,7 @@ module github.com/subiz/userclient
 go 1.21.2
 
 require (
-	github.com/subiz/header v1.14.53
+	github.com/subiz/header v1.14.56
 	github.com/subiz/log v0.0.43
 )
 
