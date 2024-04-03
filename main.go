@@ -18,7 +18,7 @@ var (
 
 func init() {
 	readyLock = &sync.Mutex{}
-	conn := header.DialGrpc("user:12842", header.WithShardRedirect())
+	conn := header.DialGrpc("user-0.user:12842", header.WithShardRedirect())
 	userc = header.NewUserMgrClient(conn)
 }
 
