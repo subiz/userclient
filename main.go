@@ -132,7 +132,7 @@ func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(user
 	// max 50 M lead
 	anchor := ""
 	for i := 0; i < 1_000; i++ {
-		out, err := userc.ListUsers(ctx, &header.ListUserRequest{
+		out, err := userc.ListLeads(ctx, &header.UserView{
 			AccountId: accid,
 			Condition: cond,
 			Anchor:    anchor,
@@ -275,7 +275,7 @@ func MergeUser(ctx context.Context, accid, userid1, userid2, reason string) erro
 func CountAllContacts(accid string) (int64, error) {
 	waitUntilReady()
 	ctx := GenCtx(accid)
-	users, err := userc.ListUsers(ctx, &header.ListUserRequest{AccountId: accid})
+	users, err := userc.ListLeads(ctx, &header.UserView{AccountId: accid})
 	if err != nil {
 		return 0, log.EServer(err, log.M{"account_id": accid})
 	}
