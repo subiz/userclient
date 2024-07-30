@@ -3,6 +3,7 @@ package userclient
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/subiz/header"
 	cpb "github.com/subiz/header/common"
@@ -37,28 +38,29 @@ func waitUntilReady() {
 
 func GetUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
-
-	user, err := userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
-	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
+	var err error
+	// wait max 5 min
+	var u *header.User
+	for i := 0; i < 30; i++ {
+		u, err = userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
+		if err != nil {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
 	}
-	return user, nil
+	return u, err
 }
 
 func GetPrimaryUser(accid, userid string) (*header.User, error) {
 	waitUntilReady()
-
 	user, err := GetUser(accid, userid)
 	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid})
+		return nil, err
 	}
 
 	if user.GetPrimaryId() != "" {
-		primary, err := GetUser(accid, user.GetPrimaryId())
-		if err != nil {
-			return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "primary_id": user.GetPrimaryId()})
-		}
-		return primary, nil
+		return GetUser(accid, user.GetPrimaryId())
 	}
 	return user, nil
 }
@@ -69,10 +71,15 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 		return nil
 	}
 	waitUntilReady()
-	if _, err := userc.UpdateUser(header.ToGrpcCtx(ctx), u); err != nil {
-		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
+	var err error
+	for i := 0; i < 30; i++ {
+		if _, err = userc.UpdateUser(header.ToGrpcCtx(ctx), u); err != nil {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
 	}
-	return nil
+	return err
 }
 
 func DeleteUserCtx(ctx *cpb.Context, u *header.User) error {
@@ -90,16 +97,25 @@ func DeleteUserCtx(ctx *cpb.Context, u *header.User) error {
 func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
 	waitUntilReady()
 	ctx := GenCtx(accid)
-	u, err := userc.ReadOrCreateUserByContactProfile(ctx, &header.Id{
-		AccountId:     accid,
-		Channel:       channel,
-		ChannelSource: source,
-		ProfileId:     profileid,
-	})
-	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
+
+	var err error
+	// wait max 5 min
+	var u *header.User
+	for i := 0; i < 30; i++ {
+		u, err = userc.ReadOrCreateUserByContactProfile(ctx, &header.Id{
+			AccountId:     accid,
+			Channel:       channel,
+			ChannelSource: source,
+			ProfileId:     profileid,
+		})
+		if err != nil {
+			log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
 	}
-	return u, nil
+	return u, err
 }
 
 func GetUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
