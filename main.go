@@ -43,7 +43,7 @@ func GetUser(accid, userid string) (*header.User, error) {
 	var u *header.User
 	for i := 0; i < 30; i++ {
 		u, err = userc.ReadUser(GenCtx(accid), &header.Id{AccountId: accid, Id: userid})
-		if err != nil {
+		if err != nil && !log.IsErr(err, string(log.E_invalid_input)) && !log.IsErr(err, string(log.E_missing_id)) {
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -73,7 +73,7 @@ func UpdateUserCtx(ctx *cpb.Context, u *header.User) error {
 	waitUntilReady()
 	var err error
 	for i := 0; i < 30; i++ {
-		if _, err = userc.UpdateUser(header.ToGrpcCtx(ctx), u); err != nil {
+		if _, err = userc.UpdateUser(header.ToGrpcCtx(ctx), u); err != nil && !log.IsErr(err, string(log.E_invalid_input)) && !log.IsErr(err, string(log.E_missing_id)) {
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -108,7 +108,7 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 			ChannelSource: source,
 			ProfileId:     profileid,
 		})
-		if err != nil {
+		if err != nil && !log.IsErr(err, string(log.E_invalid_input)) && !log.IsErr(err, string(log.E_missing_id)) {
 			log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
 			time.Sleep(10 * time.Second)
 			continue
