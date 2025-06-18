@@ -226,6 +226,16 @@ func ListAllLabels(accid string) ([]*header.Label, error) {
 	return labels.GetLabels(), nil
 }
 
+func ListAllSegments(accid string) ([]*header.Segment, error) {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	res, err := userc.ListSegments(ctx, &header.Id{AccountId: accid, Id: accid})
+	if err != nil {
+		return nil, log.EServer(err, log.M{"account_id": accid})
+	}
+	return res.GetSegments(), nil
+}
+
 func AddUserLabel(ctx context.Context, req *header.UserRequest) error {
 	waitUntilReady()
 	accid, userid, label := req.AccountId, req.UserId, req.ObjectId
