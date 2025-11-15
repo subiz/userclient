@@ -118,6 +118,28 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 	return u, err
 }
 
+func ListUsersByProfile(accid string, ids []*header.Id) ([]*header.User, error) {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+
+	var err error
+	// wait max 5 min
+	var res *header.Response
+	for i := 0; i < 30; i++ {
+		res, err = userc.ListUsersByContactProfile(ctx, &header.UserIds{
+			Ids:       ids,
+			AccountId: accid,
+		})
+		if err != nil && !log.IsErr(err, string(log.E_invalid_input)) && !log.IsErr(err, string(log.E_missing_id)) {
+			log.EServer(err, log.M{"account_id": accid})
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		break
+	}
+	return res.GetUsers(), err
+}
+
 func GetUserByProfile(accid, channel, source, profileid string) (*header.User, error) {
 	waitUntilReady()
 	u, err := userc.ReadUser(GenCtx(accid), &header.Id{
