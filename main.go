@@ -166,7 +166,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(users []*header.User, total int) bool) error {
 	waitUntilReady()
 
-	ctx := header.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz}})
+	ctx := header.ToGrpcCtx(&cpb.Context{AccountId: accid, Credential: &cpb.Credential{Type: cpb.Type_subiz}})
 	// max 50 M lead
 	anchor := ""
 	for i := 0; i < 1_000; i++ {
@@ -288,7 +288,7 @@ func RemoveUserLabel(ctx context.Context, accid, userid, label string) error {
 }
 
 func GenCtx(accid string) context.Context {
-	return header.ToGrpcCtx(&cpb.Context{Credential: &cpb.Credential{AccountId: accid, Type: cpb.Type_subiz, Issuer: "subiz"}})
+	return header.ToGrpcCtx(&cpb.Context{AccountId: accid, Credential: &cpb.Credential{Type: cpb.Type_subiz, Issuer: "subiz"}})
 }
 
 func AddLeadOwner(accid, userid, agentid string) error {
