@@ -87,9 +87,10 @@ func DeleteUserCtx(ctx *cpb.Context, u *header.User) error {
 		return nil
 	}
 	waitUntilReady()
-	_, err := userc.RemoveUser(header.ToGrpcCtx(ctx), &header.Id{AccountId: u.AccountId, Id: u.Id, Channel: u.Channel, ChannelSource: u.ChannelSource, ProfileId: u.ProfileId})
+	accid := u.AccountId
+	_, err := userc.RemoveUser(header.ToGrpcCtx(ctx), &header.Id{AccountId: accid, Id: u.Id, Channel: u.Channel, ChannelSource: u.ChannelSource, ProfileId: u.ProfileId})
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": u.AccountId, "id": u.Id})
+		return log.EServer(context.Background(), accid, err, "id", u.Id)
 	}
 	return nil
 }
@@ -109,7 +110,7 @@ func GetOrCreateUserByProfile(accid, channel, source, profileid string) (*header
 			ProfileId:     profileid,
 		})
 		if err != nil && !log.IsErr(err, string(log.E_invalid_input)) && !log.IsErr(err, string(log.E_missing_id)) {
-			log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
+			log.EServer(context.Background(), accid, err, "channel", channel, "source", source, "profile_id", profileid)
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -131,7 +132,7 @@ func ListUsersByProfile(accid string, ids []*header.Id) ([]*header.User, error) 
 			AccountId: accid,
 		})
 		if err != nil && !log.IsErr(err, string(log.E_invalid_input)) && !log.IsErr(err, string(log.E_missing_id)) {
-			log.EServer(err, log.M{"account_id": accid})
+			log.EServer(context.Background(), accid, err)
 			time.Sleep(10 * time.Second)
 			continue
 		}
@@ -149,7 +150,7 @@ func GetUserByProfile(accid, channel, source, profileid string) (*header.User, e
 		ProfileId:     profileid,
 	})
 	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid, "channel": channel, "source": source, "profile_id": profileid})
+		return nil, log.EServer(context.Background(), accid, err, "channel", channel, "source", source, "profile_id", profileid)
 	}
 	return u, nil
 }
@@ -158,7 +159,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 	waitUntilReady()
 	out, err := userc.CreateUserEvent(header.ToGrpcCtx(ctx), ev)
 	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid, "user_id": userid, "event": ev})
+		return nil, log.EServer(context.Background(), accid, err, "user_id", userid, "event", ev)
 	}
 	return out, nil
 }
@@ -195,7 +196,7 @@ func UpsertSegment(segment *header.Segment) error {
 	accid := segment.GetAccountId()
 	ctx := GenCtx(accid)
 	if _, err := userc.CreateSegment(ctx, segment); err != nil {
-		return log.EServer(err, log.M{"segment": segment})
+		return log.EServer(context.Background(), accid, err, "segment", segment)
 	}
 	return nil
 }
@@ -209,7 +210,7 @@ func AddUserToSegment(accid, segmentid string, userid []string) error {
 		UserIds:   userid,
 	})
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "segment": segmentid, "userid": userid})
+		return log.EServer(context.Background(), accid, err, "segment", segmentid, "userid", userid)
 	}
 	return nil
 }
@@ -223,17 +224,18 @@ func RemoveUserFromSegment(accid, segmentid string, userids []string) error {
 		UserIds:   userids,
 	})
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "segment": segmentid, "userid": userids})
+		return log.EServer(context.Background(), accid, err, "segment", segmentid, "userid", userids)
 	}
 	return nil
 }
 
 func UpsertLabel(label *header.Label) error {
 	waitUntilReady()
-	ctx := GenCtx(label.AccountId)
+	accid := label.AccountId
+	ctx := GenCtx(accid)
 	_, err := userc.UpsertLabel(ctx, label)
 	if err != nil {
-		return log.EServer(err, log.M{"label": label})
+		return log.EServer(context.Background(), accid, err, log.M{"label": label})
 	}
 	return nil
 }
@@ -243,7 +245,7 @@ func ListAllLabels(accid string) ([]*header.Label, error) {
 	ctx := GenCtx(accid)
 	labels, err := userc.ListLabels(ctx, &header.Id{AccountId: accid, Id: accid})
 	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid})
+		return nil, log.EServer(context.Background(), accid, err)
 	}
 	return labels.GetLabels(), nil
 }
@@ -253,7 +255,7 @@ func ListAllSegments(accid string) ([]*header.Segment, error) {
 	ctx := GenCtx(accid)
 	res, err := userc.ListSegments(ctx, &header.Id{AccountId: accid, Id: accid})
 	if err != nil {
-		return nil, log.EServer(err, log.M{"account_id": accid})
+		return nil, log.EServer(context.Background(), accid, err)
 	}
 	return res.GetSegments(), nil
 }
@@ -266,7 +268,7 @@ func AddUserLabel(ctx context.Context, req *header.UserRequest) error {
 	}
 	_, err := userc.AddUserLabel(ctx, req)
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "label": label})
+		return log.EServer(context.Background(), accid, err, "user_id", userid, "label", label)
 	}
 	return nil
 }
@@ -282,7 +284,7 @@ func RemoveUserLabel(ctx context.Context, accid, userid, label string) error {
 		ObjectId:  label,
 	})
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "label": label})
+		return log.EServer(context.Background(), accid, err, "user_id", userid, "label", label)
 	}
 	return nil
 }
@@ -300,7 +302,7 @@ func AddLeadOwner(accid, userid, agentid string) error {
 		ObjectId:  agentid,
 	})
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "user_id": userid, "agent_id": agentid})
+		return log.EServer(context.Background(), accid, err, "user_id", userid, "agent_id", agentid)
 	}
 	return nil
 }
@@ -315,7 +317,7 @@ func MergeUser(ctx context.Context, accid, userid1, userid2, reason string) erro
 		Anchor: reason,
 	})
 	if err != nil {
-		return log.EServer(err, log.M{"account_id": accid, "user_id1": userid1, "user_id2": userid2})
+		return log.EServer(context.Background(), accid, err, "user_id1", userid1, "user_id2", userid2)
 	}
 	return nil
 }
@@ -325,7 +327,7 @@ func CountAllContacts(accid string) (int64, error) {
 	ctx := GenCtx(accid)
 	users, err := userc.ListLeads(ctx, &header.UserView{AccountId: accid})
 	if err != nil {
-		return 0, log.EServer(err, log.M{"account_id": accid})
+		return 0, log.EServer(context.Background(), accid, err)
 	}
 	return users.GetTotal(), nil
 }
