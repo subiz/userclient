@@ -329,3 +329,13 @@ func CountAllContacts(accid string) (int64, error) {
 	}
 	return users.GetTotal(), nil
 }
+
+func TriggerSyncUserTag(accid, userid string) error {
+	waitUntilReady()
+	ctx := GenCtx(accid)
+	_, err := userc.TriggerSyncUserTag(ctx, &header.Id{AccountId: accid, Id: userid})
+	if err != nil {
+		return log.EServer(err, log.M{"account_id": accid, "id": userid})
+	}
+	return nil
+}
