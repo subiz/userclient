@@ -163,7 +163,7 @@ func CreateEvent(ctx *cpb.Context, accid, userid string, ev *header.Event) (*hea
 	return out, nil
 }
 
-func ScanUsers(accid string, cond *header.UserViewCondition, predicate func(users []*header.User, total int) bool) error {
+func ScanUsers(accid string, cond *header.WorkflowCondition, predicate func(users []*header.User, total int) bool) error {
 	waitUntilReady()
 
 	ctx := header.ToGrpcCtx(&cpb.Context{AccountId: accid, Credential: &cpb.Credential{Type: cpb.Type_subiz}})
